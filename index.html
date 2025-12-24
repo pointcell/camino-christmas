@@ -303,7 +303,8 @@
                 initApp(); // Start the app only after login
             }, 500);
         } else {
-            errorMsg.textContent = "Incorrect password. Try 'Ultreia'";
+            // UPDATED: No longer reveals the password
+            errorMsg.textContent = "Incorrect password.";
         }
     }
 
