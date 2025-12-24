@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merry Christmas Camino Family</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Lato:wght@300;400;700&display=swap');
+
+        :root {
+            --camino-yellow: #ffd700;
+            --camino-blue: #005eb8;
+            --text-color: #ffffff;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: 'Lato', sans-serif;
+        }
+
+        /* CONTAINER */
+        .card-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* IMAGERY LAYERS */
+        .image-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* The actual photo */
+        .camino-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* Transition for the reveal */
+            transition: filter 0.1s linear;
+        }
+
+        /* The Winter Filter Layer */
+        .winter-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 15, 50, 0.6); /* deeply blue tint */
+            mix-blend-mode: hard-light;
+            pointer-events: none;
+            z-index: 2;
+            transition: opacity 0.1s linear;
+        }
+
+        /* Canvas for Snow */
+        #snow-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        /* UI ELEMENTS */
+        .ui-layer {
+            position: absolute;
+            z-index: 10;
+            bottom: 50px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            color: white;
+            transition: opacity 0.5s ease;
+        }
+
+        h1 {
+            font-family: 'Caveat', cursive;
+            font-size: 3rem;
+            margin: 0;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 1s ease;
+        }
+
+        p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 10px auto;
+            text-shadow: 0 1px 5px rgba(0,0,0,0.8);
+            line-height: 1.5;
+        }
+
+        /* The Interaction Button */
+        .walk-btn-container {
+            position: relative;
+            margin-top: 30px;
+            width: 200px;
+            height: 60px;
+        }
+
+        .walk-btn {
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 30px;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+
+        .walk-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* The Filling Arrow Progress */
+        .fill-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: var(--camino-yellow);
+            z-index: -1;
+            transition: width 0.1s linear;
+        }
+
+        /* Yellow Arrow Icon */
+        .arrow-icon {
+            margin-left: 10px;
+            font-size: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        /* FINAL MESSAGE CARD */
+        .final-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            color: #333;
+            max-width: 80%;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 20;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border-bottom: 5px solid var(--camino-yellow);
+        }
+
+        .final-message.visible {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .shell-decoration {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 20px;
+            fill: var(--camino-blue);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="card-container">
+    
+    <div class="image-wrapper">
+        <img src="camino.jpg" alt="Camino Family" class="camino-photo" id="photo">
+        <div class="winter-overlay" id="winter-overlay"></div>
+    </div>
+
+    <canvas id="snow-canvas"></canvas>
+
+    <div class="ui-layer" id="start-ui">
+        <p id="instruction-text">The path is cold, but memories keep us warm...</p>
+        
+        <div class="walk-btn-container">
+            <div class="fill-bar" id="fill-bar"></div>
+            <div class="walk-btn" id="walk-btn">
+                HOLD TO WALK <span class="arrow-icon">→</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="final-message" id="final-message">
+        <svg class="shell-decoration" viewBox="0 0 24 24">
+            <path d="M12,2C12,2 12,2 12,2C8,2 4,5 4,9C4,14 8,18 12,22C16,18 20,14 20,9C20,5 16,2 12,2M12,19.5C12,19.5 12,19.5 12,19.5C9.5,17 7,14 7,10.5C7,8 8.5,6 10.5,5.5C10.5,5.5 10.5,5.5 10.5,5.5C10.5,5.5 10.5,5.5 10.5,5.5C11,5.5 11.5,5.5 12,5.5C12.5,5.5 13,5.5 13.5,5.5C15.5,6 17,8 17,10.5C17,14 14.5,17 12,19.5Z" />
+            <path d="M12,6.5L12,16M9,7.5L10.5,15M15,7.5L13.5,15" stroke="white" stroke-width="1" fill="none"/>
+        </svg>
+        <h1 style="color: var(--camino-blue); opacity: 1; transform: none; font-size: 2.5rem; margin-bottom: 10px;">Merry Christmas!</h1>
+        <h2 style="font-family: 'Caveat', cursive; color: #555;">To my Camino Family</h2>
+        <p style="color: #666; font-style: italic;">"Although the paths are now covered in snow, the warmth of the yellow arrows still guides us."</p>
+        <p style="margin-top: 20px; font-weight: bold; color: var(--camino-blue);">Ultreia et Suseia!</p>
+    </div>
+
+</div>
+
+<script>
+    // --- CONFIGURATION ---
+    const photoElement = document.getElementById('photo');
+    const winterOverlay = document.getElementById('winter-overlay');
+    const snowCanvas = document.getElementById('snow-canvas');
+    const ctx = snowCanvas.getContext('2d');
+    const walkBtn = document.getElementById('walk-btn');
+    const fillBar = document.getElementById('fill-bar');
+    const startUi = document.getElementById('start-ui');
+    const finalMessage = document.getElementById('final-message');
+    const instructionText = document.getElementById('instruction-text');
+
+    // --- WINTER FILTER SETUP ---
+    // This sets the initial "cold" look on the photo
+    photoElement.style.filter = "grayscale(100%) brightness(70%) contrast(120%) sepia(20%) hue-rotate(180deg) blur(2px)";
+
+    // --- SNOW ENGINE ---
+    let width, height;
+    let particles = [];
+    let isSnowing = true;
+
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        snowCanvas.width = width;
+        snowCanvas.height = height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    class Snowflake {
+        constructor() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.vx = Math.random() * 1 - 0.5; // Wind
+            this.vy = Math.random() * 2 + 1;   // Fall speed
+            this.radius = Math.random() * 3 + 1;
+            this.alpha = Math.random() * 0.5 + 0.3;
+        }
+
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // Reset if out of bounds
+            if (this.y > height) {
+                this.y = -10;
+                this.x = Math.random() * width;
+            }
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+            ctx.fill();
+        }
+    }
+
+    // Initialize snowflakes
+    for (let i = 0; i < 150; i++) {
+        particles.push(new Snowflake());
+    }
+
+    function animateSnow() {
+        if (!isSnowing && ctx.globalAlpha < 0.01) return;
+
+        ctx.clearRect(0, 0, width, height);
+        
+        for (let p of particles) {
+            p.update();
+            p.draw();
+        }
+        
+        requestAnimationFrame(animateSnow);
+    }
+    animateSnow();
+
+
+    // --- INTERACTION LOGIC ---
+    let progress = 0;
+    let isWalking = false;
+    let animationFrameId;
+
+    function updateScene() {
+        if (isWalking) {
+            progress += 0.5; // Speed of the walk
+            if (progress > 100) progress = 100;
+        } else {
+            // Optional: Decay progress if they let go? 
+            // Let's keep it forgiving for Christmas :)
+            // progress -= 0.5; 
+            // if (progress < 0) progress = 0;
+        }
+
+        // 1. Update Progress Bar
+        fillBar.style.width = `${progress}%`;
+
+        // 2. Update Image Filters (The Magic Transition)
+        // We interpolate from "Winter" settings to "Normal" settings
+        const percent = progress / 100;
+        const invPercent = 1 - percent;
+
+        // Calculate filter values
+        const gray = 100 * invPercent;
+        const bright = 70 + (30 * percent); // Goes from 70% to 100%
+        const contrast = 120 - (20 * percent); // Goes from 120% to 100%
+        const blur = 2 * invPercent;
+
+        photoElement.style.filter = `grayscale(${gray}%) brightness(${bright}%) contrast(${contrast}%) sepia(${20 * invPercent}%) hue-rotate(${180 * invPercent}deg) blur(${blur}px)`;
+
+        // 3. Update Winter Overlay Opacity
+        winterOverlay.style.opacity = invPercent;
+
+        // 4. Update Snow Opacity
+        snowCanvas.style.opacity = invPercent;
+
+        // 5. Trigger Completion
+        if (progress >= 100) {
+            completeJourney();
+        } else {
+            animationFrameId = requestAnimationFrame(updateScene);
+        }
+    }
+
+    function startWalking(e) {
+        e.preventDefault(); // Prevent text selection/scrolling on mobile
+        isWalking = true;
+        walkBtn.querySelector('.arrow-icon').style.transform = "translateX(5px)";
+        updateScene();
+    }
+
+    function stopWalking(e) {
+        e.preventDefault();
+        isWalking = false;
+        walkBtn.querySelector('.arrow-icon').style.transform = "translateX(0px)";
+        cancelAnimationFrame(animationFrameId); // Pause the calculation loop
+    }
+
+    function completeJourney() {
+        isWalking = false;
+        isSnowing = false;
+        
+        // Hide Button
+        startUi.style.opacity = '0';
+        setTimeout(() => {
+            startUi.classList.add('hidden');
+        }, 500);
+
+        // Show Final Message
+        setTimeout(() => {
+            finalMessage.classList.add('visible');
+            
+            // Add a subtle warmth glow animation to the photo
+            photoElement.style.boxShadow = "inset 0 0 100px rgba(255, 215, 0, 0.2)";
+        }, 800);
+    }
+
+    // Event Listeners (Mouse and Touch)
+    walkBtn.addEventListener('mousedown', startWalking);
+    window.addEventListener('mouseup', stopWalking);
+
+    walkBtn.addEventListener('touchstart', startWalking);
+    window.addEventListener('touchend', stopWalking);
+
+</script>
+</body>
+</html>
